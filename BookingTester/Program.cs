@@ -8,7 +8,7 @@ class Program
         var climbingBooker = new ClimbingBooker();
         var climbers = new List<Climber>
         {
-            new("Michal Steyn", "michalsteyn@gmail.com", "$zLb9g2xML8R5!9CDo2m"),
+            //new("Michal Steyn", "michalsteyn@gmail.com", "$zLb9g2xML8R5!9CDo2m"),
             new("David Steyn", "michalsteyn+david@gmail.com", "steynfamilyclimbing"),
             new("Zoe Steyn", "michalsteyn+zoe@gmail.com", "steynfamilyclimbing"),
             new("Isaac Steyn", "michalsteyn+isaac@gmail.com", "steynfamilyclimbing"),
@@ -18,14 +18,24 @@ class Program
         (var climbingEvents, var serverTime) = await climbingBooker.GetClimbingEvents(false);
         var serverLateTime = Math.Max(0, serverTime?.TotalSeconds ?? 0);
 
-        var eventId = 64169121; //64169191
-        var climbingEvent = climbingEvents.FirstOrDefault(e => e.Id == eventId);
-        
+        var oneDayFromNow = DateTime.Now.Date.AddDays(1); // Get tomorrow's date at 00:00
+        var targetTime = TimeSpan.FromHours(18); // Set to 6 PM (18:00)
+        var climbingEvent = climbingEvents
+            .Where(e => e.StartTime.Date == oneDayFromNow && e.StartTime.TimeOfDay >= targetTime)
+            .OrderBy(e => e.StartTime) // Ensure we get the earliest matching event
+            .FirstOrDefault();
+        int eventId = (int?)climbingEvent?.Id ?? 0;
+
+        //var eventId = 64169122; //64169191
+        //var climbingEvent = climbingEvents.FirstOrDefault(e => e.Id == eventId);
+
         if (climbingEvent == null)
         {
-            UserLogger.Info($"No event found with id: {eventId}");
+            UserLogger.Info($"No event found");
             return;
         }
+
+        climbingEvent.StartTime += TimeSpan.FromMinutes(5);
 
         var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
         var adjustedLocalTime = DateTime.Now + TimeSpan.FromSeconds(serverLateTime);
@@ -34,7 +44,19 @@ class Program
         {
             var waitTime = eventBookableTime - adjustedLocalTime;
             Console.WriteLine($"Too early to book event, need to wait: {waitTime.TotalSeconds}");
-            await Task.Delay(waitTime);
+            
+            while (true)
+            {
+                var remainingTime = eventBookableTime - (DateTime.Now + TimeSpan.FromSeconds(serverLateTime));
+
+                if (remainingTime <= TimeSpan.Zero)
+                    break; // Exit when it's time to book
+
+                Console.WriteLine($"Remaining time to book: {remainingTime.TotalSeconds:F1} seconds");
+
+                var sleepTime = remainingTime > TimeSpan.FromSeconds(10) ? TimeSpan.FromSeconds(10) : remainingTime;
+                await Task.Delay(sleepTime);
+            }
         }
 
         foreach (var climber in climbers)
