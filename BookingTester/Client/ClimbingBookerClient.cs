@@ -1,22 +1,15 @@
-﻿using BookingTester;
+﻿using System.Net;
+using BookingTester.Models;
 using HtmlAgilityPack;
-using System.Net;
 using Newtonsoft.Json;
 
-public enum BookStatus
-{
-    OK,
-    TooEarly,
-    AlreadyBooked,
-    Waitlisted,
-    Error
-}
+namespace BookingTester.Client;
 
 public class ClimbingBookerClient : IClimbingBooker
 {
     private HttpClientHandler handler;
     private HttpClient client;
-    private const bool serializeEventsToFile = true;
+    private const bool serializeEventsToFile = false;
 
     public ClimbingBookerClient()
     {

@@ -1,4 +1,6 @@
-﻿public interface IClimbingBooker
+﻿using BookingTester.Models;
+
+public interface IClimbingBooker
 {
     Task<(List<ClimbingEvent>, TimeSpan?)> GetClimbingEvents(bool includeCertified = false, bool noParse = false);
     Task<bool> LogIn(string name, string user, string pass);
