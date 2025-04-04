@@ -1,0 +1,6 @@
+@ClimbingBookerApi_HostAddress = http://localhost:5220
+
+GET {{ClimbingBookerApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

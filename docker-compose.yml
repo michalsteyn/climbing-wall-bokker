@@ -1,0 +1,6 @@
+services:
+  climbingbookerapi:
+    image: ${DOCKER_REGISTRY-}climbingbookerapi
+    build:
+      context: .
+      dockerfile: ClimbingBookerApi/Dockerfile

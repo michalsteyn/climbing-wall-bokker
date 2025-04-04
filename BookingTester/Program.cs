@@ -35,7 +35,7 @@ class Program
             return;
         }
 
-        climbingEvent.StartTime += TimeSpan.FromMinutes(5);
+        //climbingEvent.StartTime += TimeSpan.FromMinutes(5);
 
         var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
         var adjustedLocalTime = DateTime.Now + TimeSpan.FromSeconds(serverLateTime);
