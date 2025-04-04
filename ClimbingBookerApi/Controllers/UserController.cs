@@ -1,5 +1,6 @@
 using BookingTester.Models;
 using BookingTester.Services;
+using ClimbingBookerApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClimbingBookerApi.Controllers;
@@ -22,16 +23,21 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves all registered climbers.
+    /// Retrieves all registered climbers with basic information.
     /// </summary>
-    /// <returns>A list of all climbers.</returns>
+    /// <returns>A list of climbers with their ID and name.</returns>
     /// <response code="200">Returns the list of climbers.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Climber>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Climber>>> GetClimbers()
+    [ProducesResponseType(typeof(IEnumerable<UserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetClimbers()
     {
         _logger.LogInformation("Retrieving all climbers");
         var climbers = await _userManager.GetClimbersAsync();
-        return Ok(climbers);
+        var userDtos = climbers.Select(c => new UserDto
+        {
+            Id = c.Id,
+            Name = c.Name
+        });
+        return Ok(userDtos);
     }
 } 

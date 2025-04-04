@@ -30,19 +30,20 @@ public class BookingController : ControllerBase
     }
 
     /// <summary>
-    /// Schedules a booking for a specific event and climber.
+    /// Schedules bookings for multiple climbers for a specific event.
     /// </summary>
     /// <param name="eventId">The ID of the event to book.</param>
-    /// <param name="climberId">The ID of the climber making the booking.</param>
+    /// <param name="climberIds">An array of climber IDs to book for the event.</param>
     /// <returns>The result of the scheduling operation.</returns>
-    /// <response code="200">Booking was successfully scheduled.</response>
-    /// <response code="400">If the event or climber is not found.</response>
+    /// <response code="200">Bookings were successfully scheduled.</response>
+    /// <response code="400">If the event or any climber is not found.</response>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ScheduleBooking(long eventId, long climberId)
+    public async Task<IActionResult> ScheduleBooking(long eventId, [FromBody] long[] climberIds)
     {
-        _logger.LogInformation("Scheduling booking for event {EventId} and climber {ClimberId}", eventId, climberId);
+        _logger.LogInformation("Scheduling booking for event {EventId} and climbers {ClimberIds}", 
+            eventId, string.Join(", ", climberIds));
 
         var @event = await _eventManager.GetEventByIdAsync(eventId);
         if (@event == null)
@@ -50,13 +51,18 @@ public class BookingController : ControllerBase
             return BadRequest($"Event with ID {eventId} not found");
         }
 
-        var climber = await _userManager.GetClimberByIdAsync(climberId);
-        if (climber == null)
+        var climbers = new List<Climber>();
+        foreach (var climberId in climberIds)
         {
-            return BadRequest($"Climber with ID {climberId} not found");
+            var climber = await _userManager.GetClimberByIdAsync(climberId);
+            if (climber == null)
+            {
+                return BadRequest($"Climber with ID {climberId} not found");
+            }
+            climbers.Add(climber);
         }
 
-        await _bookingScheduler.ScheduleBookingAsync(@event, new[] { climber });
-        return Ok("Booking scheduled successfully");
+        await _bookingScheduler.ScheduleBookingAsync(@event, climbers);
+        return Ok($"Successfully scheduled bookings for {climbers.Count} climbers");
     }
 } 
