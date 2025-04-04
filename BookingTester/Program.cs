@@ -5,7 +5,7 @@ class Program
     static async Task Main(string[] args)
     {
 
-        var climbingBooker = new ClimbingBooker();
+        var climbingBooker = new ClimbingBookerClient();
         var climbers = new List<Climber>
         {
             //new("Michal Steyn", "michalsteyn@gmail.com", "$zLb9g2xML8R5!9CDo2m"),
@@ -80,7 +80,7 @@ class Program
     {
         UserLogger.Info(climber.Name,
             $"Going to Book Climb, ID: {eventId}, Date: {climbingEvent.StartTime}");//, Type: {climbingEvent.Description}");
-        var climbingBooker1 = new ClimbingBooker();
+        var climbingBooker1 = new ClimbingBookerClient();
         var result = await climbingBooker1.BookClimb(climber.Name, climber.Email, climber.Password, eventId);
         UserLogger.Info(climber.Name,
             $"Climb Booking, Result: {result}: ID: {eventId}, Date: {climbingEvent.StartTime}");//, Type: {climbingEvent.Description}");
