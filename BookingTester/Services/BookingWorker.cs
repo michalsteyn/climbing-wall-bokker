@@ -32,7 +32,7 @@ public class BookingWorker : BackgroundService
 
             // Find the next available event
             var climbingEvent = await _eventManager.FindNextAvailableEventAsync();
-            
+
             if (climbingEvent == null)
             {
                 _logger.LogWarning("No suitable climbing event found");

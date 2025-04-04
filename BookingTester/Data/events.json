@@ -1,7 +1,7 @@
 [
   {
-    "StartTime": "2025-04-04T17:00:00Z",
-    "EndTime": "2025-04-04T18:00:00Z",
+    "StartTime": "2025-04-04T23:10:00Z",
+    "EndTime": "2025-04-04T23:30:00Z",
     "Id": 66117457,
     "Capacity": 8,
     "Booked": 3,
@@ -14,8 +14,8 @@
     "SomeProperty7": 0
   },
   {
-    "StartTime": "2025-04-04T18:15:00Z",
-    "EndTime": "2025-04-04T19:15:00Z",
+    "StartTime": "2025-04-05T18:15:00Z",
+    "EndTime": "2025-04-05T19:15:00Z",
     "Id": 66117484,
     "Capacity": 8,
     "Booked": 4,

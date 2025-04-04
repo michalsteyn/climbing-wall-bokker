@@ -2,6 +2,8 @@ using BookingTester.Models;
 using Hangfire;
 using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic;
+using Newtonsoft.Json;
 
 namespace BookingTester.Services;
 
@@ -40,18 +42,19 @@ public class BookingScheduler : IBookingScheduler
     public BookingScheduler(
         IBookingService bookingService,
         ILogger<BookingScheduler> logger,
-        IBackgroundJobClient backgroundJobClient,
-        IMonitoringApi monitoringApi)
+        IBackgroundJobClient backgroundJobClient)
     {
         _bookingService = bookingService;
         _logger = logger;
         _backgroundJobClient = backgroundJobClient;
-        _monitoringApi = monitoringApi;
+        //_monitoringApi = monitoringApi;
+        _monitoringApi = JobStorage.Current.GetMonitoringApi();
     }
 
     public async Task ScheduleBookingAsync(ClimbingEvent climbingEvent, IEnumerable<Climber> climbers)
     {
-        var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
+        //var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
+        var eventBookableTime = DateAndTime.Now + TimeSpan.FromSeconds(5);
         
         foreach (var climber in climbers)
         {
@@ -75,16 +78,25 @@ public class BookingScheduler : IBookingScheduler
         foreach (var job in scheduledJobs)
         {
             var jobDetails = _monitoringApi.JobDetails(job.Key);
-            var invocationData = InvocationData.Deserialize(jobDetails.History[0].Data["Arguments"][0].ToString());
-            var args = invocationData.Arguments;
+            var climber = jobDetails.Job.Args[0] as Climber;
+            var eventId = jobDetails.Job.Args[1] as long?;
+
+            var history = jobDetails.History.FirstOrDefault();
+            //if (history == null) continue;
+
+            //var args = JsonConvert.DeserializeObject<object[]>(history.Data["Arguments"].ToString());
+            //if (args == null || args.Length < 2) continue;
+
+            //var climber = JsonConvert.DeserializeObject<Climber>(args[0].ToString());
+            if (climber == null) continue;
 
             scheduledBookings.Add(new ScheduledBooking
             {
                 JobId = job.Key,
-                EventId = (long)args[1],
-                ClimberName = ((Climber)args[0]).Name,
+                EventId = eventId ?? 0,
+                ClimberName = climber.Name,
                 ScheduledTime = job.Value.EnqueueAt,
-                Status = job.Value.State
+                Status = history?.StateName ?? "Unknown"
             });
         }
 
@@ -105,16 +117,23 @@ public class BookingScheduler : IBookingScheduler
         foreach (var job in succeededJobs)
         {
             var jobDetails = _monitoringApi.JobDetails(job.Key);
-            var result = jobDetails.History[0].Data["Result"];
-            var invocationData = InvocationData.Deserialize(jobDetails.History[0].Data["Arguments"][0].ToString());
-            var args = invocationData.Arguments;
+            var history = jobDetails.History.FirstOrDefault();
+            if (history == null) continue;
+
+            var args = JsonConvert.DeserializeObject<object[]>(history.Data["Arguments"].ToString());
+            if (args == null || args.Length < 2) continue;
+
+            var climber = JsonConvert.DeserializeObject<Climber>(args[0].ToString());
+            if (climber == null) continue;
+
+            var result = JsonConvert.DeserializeObject<BookStatus>(history.Data["Result"].ToString());
 
             completedBookings.Add(new CompletedBooking
             {
-                EventId = (long)args[1],
-                ClimberName = ((Climber)args[0]).Name,
+                EventId = Convert.ToInt64(args[1]),
+                ClimberName = climber.Name,
                 CompletedTime = job.Value.SucceededAt.Value,
-                Result = (BookStatus)result
+                Result = result
             });
         }
 

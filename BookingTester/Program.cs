@@ -23,7 +23,7 @@ var builder = Host.CreateDefaultBuilder(args)
         services.Configure<MockClimbingBookerOptions>(options =>
         {
             options.EventsFilePath = "events.json";
-            options.DefaultBookingResult = BookStatus.AlreadyBooked;
+            options.DefaultBookingResult = BookStatus.OK;
             options.ServerTimeOffset = TimeSpan.Zero;
         });
 
@@ -32,9 +32,11 @@ var builder = Host.CreateDefaultBuilder(args)
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UseSQLiteStorage("Data Source=hangfire.db;"));
+            .UseInMemoryStorage()
+        //    .UseSQLiteStorage("hangfire.db;")
+        );
 
-        services.AddHangfireServer();
+        services.AddHangfireServer(options => options.SchedulePollingInterval = TimeSpan.FromSeconds(1));
 
         // Use mock implementation
         services.AddSingleton<IClimbingBooker, MockClimbingBooker>();
@@ -48,6 +50,6 @@ var builder = Host.CreateDefaultBuilder(args)
 var host = builder.Build();
 
 // Initialize Hangfire
-GlobalConfiguration.Configuration.UseSQLiteStorage("Data Source=hangfire.db;");
+//GlobalConfiguration.Configuration.UseSQLiteStorage("Data Source=hangfire.db;");
 
 await host.RunAsync();
