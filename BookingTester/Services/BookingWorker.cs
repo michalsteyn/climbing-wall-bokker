@@ -5,20 +5,20 @@ namespace BookingTester.Services;
 
 public class BookingWorker : BackgroundService
 {
-    private readonly IBookingService _bookingService;
     private readonly IUserManager _userManager;
     private readonly IEventManager _eventManager;
+    private readonly IBookingScheduler _bookingScheduler;
     private readonly ILogger<BookingWorker> _logger;
 
     public BookingWorker(
-        IBookingService bookingService,
         IUserManager userManager,
         IEventManager eventManager,
+        IBookingScheduler bookingScheduler,
         ILogger<BookingWorker> logger)
     {
-        _bookingService = bookingService;
         _userManager = userManager;
         _eventManager = eventManager;
+        _bookingScheduler = bookingScheduler;
         _logger = logger;
     }
 
@@ -39,21 +39,19 @@ public class BookingWorker : BackgroundService
                 return;
             }
 
-            // Wait until the event is bookable
-            var eventBookableTime = await _eventManager.GetEventBookableTimeAsync(climbingEvent);
-            await _eventManager.WaitUntilBookingTimeAsync(eventBookableTime);
+            // Schedule bookings for all climbers
+            await _bookingScheduler.ScheduleBookingAsync(climbingEvent, climbers);
+            _logger.LogInformation("Scheduled bookings for event {EventId}", climbingEvent.Id);
 
-            // Book the event for all climbers
-            foreach (var climber in climbers)
+            // Display scheduled bookings
+            var scheduledBookings = await _bookingScheduler.GetScheduledBookingsAsync();
+            foreach (var booking in scheduledBookings)
             {
-                try
-                {
-                    await _bookingService.BookClimberAsync(climber, climbingEvent.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to book climb for {ClimberName}", climber.Name);
-                }
+                _logger.LogInformation(
+                    "Scheduled booking: {ClimberName} for event {EventId} at {ScheduledTime}",
+                    booking.ClimberName,
+                    booking.EventId,
+                    booking.ScheduledTime);
             }
         }
         catch (Exception ex)

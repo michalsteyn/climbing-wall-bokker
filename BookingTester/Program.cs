@@ -1,9 +1,11 @@
 ﻿using BookingTester.Client;
 using BookingTester.Models;
+using BookingTester.Services;
+using Hangfire;
+using Hangfire.Storage.SQLite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using BookingTester.Services;
 
 var builder = Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
@@ -25,15 +27,27 @@ var builder = Host.CreateDefaultBuilder(args)
             options.ServerTimeOffset = TimeSpan.Zero;
         });
 
+        // Configure Hangfire
+        services.AddHangfire(configuration => configuration
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSQLiteStorage("Data Source=hangfire.db;"));
+
+        services.AddHangfireServer();
+
         // Use mock implementation
         services.AddSingleton<IClimbingBooker, MockClimbingBooker>();
-
-        //services.AddSingleton<IClimbingBooker, ClimbingBookerClient>();
         services.AddSingleton<IUserManager, UserManager>();
         services.AddSingleton<IEventManager, EventManager>();
         services.AddSingleton<IBookingService, BookingService>();
+        services.AddSingleton<IBookingScheduler, BookingScheduler>();
         services.AddHostedService<BookingWorker>();
     });
 
 var host = builder.Build();
+
+// Initialize Hangfire
+GlobalConfiguration.Configuration.UseSQLiteStorage("Data Source=hangfire.db;");
+
 await host.RunAsync();
