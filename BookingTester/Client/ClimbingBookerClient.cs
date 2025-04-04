@@ -1,6 +1,7 @@
 ﻿using BookingTester;
 using HtmlAgilityPack;
 using System.Net;
+using Newtonsoft.Json;
 
 public enum BookStatus
 {
@@ -15,6 +16,7 @@ public class ClimbingBookerClient : IClimbingBooker
 {
     private HttpClientHandler handler;
     private HttpClient client;
+    private const bool serializeEventsToFile = true;
 
     public ClimbingBookerClient()
     {
@@ -75,6 +77,8 @@ public class ClimbingBookerClient : IClimbingBooker
             return (null, null); 
         }
         var climbingEvents = parser.ParseBookingSchedule(schedule, includeCertified);
+        if(serializeEventsToFile)
+            File.WriteAllText("events.json", JsonConvert.SerializeObject(climbingEvents, Formatting.Indented));
         return (climbingEvents, serverTimeOffset);
     }
 

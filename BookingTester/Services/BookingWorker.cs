@@ -7,15 +7,18 @@ public class BookingWorker : BackgroundService
 {
     private readonly IBookingService _bookingService;
     private readonly IUserManager _userManager;
+    private readonly IEventManager _eventManager;
     private readonly ILogger<BookingWorker> _logger;
 
     public BookingWorker(
         IBookingService bookingService,
         IUserManager userManager,
+        IEventManager eventManager,
         ILogger<BookingWorker> logger)
     {
         _bookingService = bookingService;
         _userManager = userManager;
+        _eventManager = eventManager;
         _logger = logger;
     }
 
@@ -23,22 +26,24 @@ public class BookingWorker : BackgroundService
     {
         try
         {
+            // Get all users
             var climbers = await _userManager.GetClimbersAsync();
-            var oneDayFromNow = DateTime.Now.Date.AddDays(1);
-            var targetTime = TimeSpan.FromHours(18);
+            _logger.LogInformation("Found {Count} climbers to book", climbers.Count());
 
-            var climbingEvent = await _bookingService.FindNextAvailableEventAsync(oneDayFromNow, targetTime);
+            // Find the next available event
+            var climbingEvent = await _eventManager.FindNextAvailableEventAsync();
+            
             if (climbingEvent == null)
             {
-                _logger.LogWarning("No suitable climbing event found for tomorrow at {TargetTime}", targetTime);
+                _logger.LogWarning("No suitable climbing event found");
                 return;
             }
 
-            var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
-            var serverTimeOffset = TimeSpan.FromSeconds(0); // This should be obtained from the booking service
+            // Wait until the event is bookable
+            var eventBookableTime = await _eventManager.GetEventBookableTimeAsync(climbingEvent);
+            await _eventManager.WaitUntilBookingTimeAsync(eventBookableTime);
 
-            await _bookingService.WaitUntilBookingTimeAsync(eventBookableTime, serverTimeOffset);
-
+            // Book the event for all climbers
             foreach (var climber in climbers)
             {
                 try
