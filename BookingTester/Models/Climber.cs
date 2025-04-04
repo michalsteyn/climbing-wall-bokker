@@ -13,8 +13,15 @@ public class Climber
     [JsonPropertyName("password")]
     public string Password { get; set; }
 
-    public Climber(string name, string email, string password)
+    public int Id { get; set; }
+
+    public Climber()
     {
+    }
+
+    public Climber(int id, string name, string email, string password)
+    {
+        Id = id;
         Name = name;
         Email = email;
         Password = password;

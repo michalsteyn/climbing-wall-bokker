@@ -253,3 +253,6 @@ _Pvt_Extensions
 /Source/paket-files
 /Build/.sonarqube
 /Source/ServiceFabric/AirportDetail.Service/helm/charts/*.tgz
+/ClimbingBookerApi/*.db-wal
+/ClimbingBookerApi/*.db
+/ClimbingBookerApi/*.db-shm

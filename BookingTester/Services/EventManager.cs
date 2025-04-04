@@ -19,6 +19,7 @@ public interface IEventManager
     Task<DateTime> GetEventBookableTimeAsync(ClimbingEvent climbingEvent);
     Task<TimeSpan> GetServerTimeOffsetAsync();
     Task WaitUntilBookingTimeAsync(DateTime eventBookableTime);
+    Task<ClimbingEvent?> GetEventByIdAsync(long eventId);
 }
 
 public class EventManager : IEventManager
@@ -101,5 +102,11 @@ public class EventManager : IEventManager
                 await Task.Delay(sleepTime);
             }
         }
+    }
+
+    public async Task<ClimbingEvent?> GetEventByIdAsync(long eventId)
+    {
+        var events = await GetAllEventsAsync(false);
+        return events.FirstOrDefault(e => e.Id == eventId);
     }
 } 

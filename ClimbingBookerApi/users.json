@@ -1,0 +1,26 @@
+[
+  {
+    "name": "David Steyn",
+    "email": "michalsteyn\u002Bdavid@gmail.com",
+    "password": "steynfamilyclimbing",
+    "Id": 1
+  },
+  {
+    "name": "Zoe Steyn",
+    "email": "michalsteyn\u002Bzoe@gmail.com",
+    "password": "steynfamilyclimbing",
+    "Id": 2
+  },
+  {
+    "name": "Isaac Steyn",
+    "email": "michalsteyn\u002Bisaac@gmail.com",
+    "password": "steynfamilyclimbing",
+    "Id": 3
+  },
+  {
+    "name": "Tiffany Steyn",
+    "email": "michalsteyn\u002Btiffany@gmail.com",
+    "password": "steynfamilyclimbing",
+    "Id": 4
+  }
+]

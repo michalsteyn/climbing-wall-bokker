@@ -53,8 +53,7 @@ public class BookingScheduler : IBookingScheduler
 
     public async Task ScheduleBookingAsync(ClimbingEvent climbingEvent, IEnumerable<Climber> climbers)
     {
-        //var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
-        var eventBookableTime = DateAndTime.Now + TimeSpan.FromSeconds(5);
+        var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
         
         foreach (var climber in climbers)
         {
@@ -117,22 +116,19 @@ public class BookingScheduler : IBookingScheduler
         foreach (var job in succeededJobs)
         {
             var jobDetails = _monitoringApi.JobDetails(job.Key);
+            var climber = jobDetails.Job.Args[0] as Climber;
+            var eventId = jobDetails.Job.Args[1] as long?;
+
             var history = jobDetails.History.FirstOrDefault();
-            if (history == null) continue;
-
-            var args = JsonConvert.DeserializeObject<object[]>(history.Data["Arguments"].ToString());
-            if (args == null || args.Length < 2) continue;
-
-            var climber = JsonConvert.DeserializeObject<Climber>(args[0].ToString());
             if (climber == null) continue;
 
             var result = JsonConvert.DeserializeObject<BookStatus>(history.Data["Result"].ToString());
 
             completedBookings.Add(new CompletedBooking
             {
-                EventId = Convert.ToInt64(args[1]),
+                EventId = eventId ?? 0,
                 ClimberName = climber.Name,
-                CompletedTime = job.Value.SucceededAt.Value,
+                CompletedTime = job.Value.SucceededAt ?? DateTime.MinValue,
                 Result = result
             });
         }
@@ -141,7 +137,7 @@ public class BookingScheduler : IBookingScheduler
     }
 
     [AutomaticRetry(Attempts = 0)]
-    public async Task ProcessBookingAsync(Climber climber, long eventId)
+    public async Task<BookStatus> ProcessBookingAsync(Climber climber, long eventId)
     {
         try
         {
@@ -151,6 +147,7 @@ public class BookingScheduler : IBookingScheduler
                 climber.Name,
                 eventId,
                 result);
+            return result;
         }
         catch (Exception ex)
         {

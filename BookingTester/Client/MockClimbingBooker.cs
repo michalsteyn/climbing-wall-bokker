@@ -46,6 +46,9 @@ public class MockClimbingBooker : IClimbingBooker
                 }
             }
 
+            _cachedEvents[0].StartTime = DateTime.Now + TimeSpan.FromHours(24) + TimeSpan.FromSeconds(15);
+            _cachedEvents[0].EndTime = _cachedEvents[0].StartTime + TimeSpan.FromHours(1);
+
             var filteredEvents = _cachedEvents.Where(e => e.StartTime >= DateTime.Now).ToList();
             return (filteredEvents, _options.ServerTimeOffset);
         }
