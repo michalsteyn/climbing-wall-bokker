@@ -13,6 +13,7 @@ public interface IBookingScheduler
     Task<IEnumerable<ScheduledBooking>> GetScheduledBookingsAsync();
     Task CancelScheduledBookingAsync(string jobId);
     Task<IEnumerable<CompletedBooking>> GetCompletedBookingsAsync();
+    Task<int> CleanupOldJobsAsync(TimeSpan olderThan);
 }
 
 public class ScheduledBooking
@@ -157,5 +158,47 @@ public class BookingScheduler : IBookingScheduler
                 eventId);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Removes old jobs from Hangfire storage that are older than the specified time.
+    /// </summary>
+    /// <param name="olderThan">The age threshold for jobs to be removed.
+    /// If set to TimeSpan.Zero, all jobs will be removed regardless of age.</param>
+    /// <returns>The number of jobs that were removed.</returns>
+    public async Task<int> CleanupOldJobsAsync(TimeSpan olderThan)
+    {
+        _logger.LogInformation("Cleaning up jobs older than {OlderThan}", olderThan);
+        
+        var cutoffDate = olderThan == TimeSpan.Zero 
+            ? DateTime.MaxValue 
+            : DateTime.UtcNow.Subtract(olderThan);
+        
+        var removedCount = 0;
+
+        // Clean up scheduled jobs
+        var scheduledJobs = _monitoringApi.ScheduledJobs(0, int.MaxValue);
+        foreach (var job in scheduledJobs)
+        {
+            if (olderThan == TimeSpan.Zero || job.Value.EnqueueAt < cutoffDate)
+            {
+                _backgroundJobClient.Delete(job.Key);
+                removedCount++;
+            }
+        }
+
+        // Clean up completed jobs
+        var succeededJobs = _monitoringApi.SucceededJobs(0, int.MaxValue);
+        foreach (var job in succeededJobs)
+        {
+            if (olderThan == TimeSpan.Zero || job.Value.SucceededAt < cutoffDate)
+            {
+                _backgroundJobClient.Delete(job.Key);
+                removedCount++;
+            }
+        }
+
+        _logger.LogInformation("Removed {Count} old jobs", removedCount);
+        return removedCount;
     }
 } 

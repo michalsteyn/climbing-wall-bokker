@@ -65,4 +65,20 @@ public class SchedulerController : ControllerBase
         await _bookingScheduler.CancelScheduledBookingAsync(jobId);
         return Ok("Booking cancelled successfully");
     }
+
+    /// <summary>
+    /// Removes old jobs from the scheduler that are older than the specified time.
+    /// </summary>
+    /// <param name="days">The number of days to keep jobs. Jobs older than this will be removed.
+    /// If set to 0, all jobs will be removed regardless of age.</param>
+    /// <returns>The number of jobs that were removed.</returns>
+    /// <response code="200">Returns the number of jobs that were removed.</response>
+    [HttpPost("cleanup")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    public async Task<ActionResult<int>> CleanupOldJobs([FromQuery] int days = 7)
+    {
+        _logger.LogInformation("Cleaning up jobs older than {Days} days", days);
+        var removedCount = await _bookingScheduler.CleanupOldJobsAsync(TimeSpan.FromDays(days));
+        return Ok(removedCount);
+    }
 } 
