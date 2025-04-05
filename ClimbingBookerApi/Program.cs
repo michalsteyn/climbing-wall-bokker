@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using ClimbingBookerApi.Filters;
 using BookingTester.Client;
+using ClimbingBookerApi.Middleware;
 
 namespace ClimbingBookerApi
 {
@@ -27,6 +28,31 @@ namespace ClimbingBookerApi
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Climbing Booker API", Version = "v1" });
+                
+                // Add API key authentication to Swagger
+                c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+                {
+                    Description = "API Key authentication",
+                    Name = "X-API-Key",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "ApiKey"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "ApiKey"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
             });
 
             // Configure Hangfire
@@ -68,6 +94,10 @@ namespace ClimbingBookerApi
             }
 
             //app.UseHttpsRedirection();
+
+            // Add API key middleware before authorization
+            app.UseApiKeyMiddleware();
+
             app.UseAuthorization();
             app.MapControllers();
 
