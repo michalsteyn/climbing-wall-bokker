@@ -1,6 +1,5 @@
 using BookingTester.Models;
 using BookingTester.Services;
-using ClimbingBookerApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClimbingBookerApi.Controllers;

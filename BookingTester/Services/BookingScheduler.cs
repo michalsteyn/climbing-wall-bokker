@@ -12,7 +12,7 @@ public interface IBookingScheduler
     Task ScheduleBookingAsync(ClimbingEvent climbingEvent, IEnumerable<Climber> climbers);
     Task<IEnumerable<ScheduledBooking>> GetScheduledBookingsAsync();
     Task CancelScheduledBookingAsync(string jobId);
-    Task<IEnumerable<CompletedBooking>> GetCompletedBookingsAsync();
+    Task<IEnumerable<BookingResult>> GetCompletedBookingsAsync();
     Task<int> CleanupOldJobsAsync(TimeSpan olderThan);
 }
 
@@ -23,14 +23,6 @@ public class ScheduledBooking
     public string ClimberName { get; set; } = string.Empty;
     public DateTime ScheduledTime { get; set; }
     public string Status { get; set; } = string.Empty;
-}
-
-public class CompletedBooking
-{
-    public long EventId { get; set; }
-    public string ClimberName { get; set; } = string.Empty;
-    public DateTime CompletedTime { get; set; }
-    public BookStatus Result { get; set; }
 }
 
 public class BookingScheduler : IBookingScheduler
@@ -109,45 +101,39 @@ public class BookingScheduler : IBookingScheduler
         _logger.LogInformation("Cancelled scheduled booking {JobId}", jobId);
     }
 
-    public async Task<IEnumerable<CompletedBooking>> GetCompletedBookingsAsync()
+    public async Task<IEnumerable<BookingResult>> GetCompletedBookingsAsync()
     {
         var succeededJobs = _monitoringApi.SucceededJobs(0, int.MaxValue);
-        var completedBookings = new List<CompletedBooking>();
+        var completedBookings = new List<BookingResult>();
 
         foreach (var job in succeededJobs)
         {
             var jobDetails = _monitoringApi.JobDetails(job.Key);
-            var climber = jobDetails.Job.Args[0] as Climber;
-            var eventId = jobDetails.Job.Args[1] as long?;
-
             var history = jobDetails.History.FirstOrDefault();
-            if (climber == null) continue;
+            if (history == null) continue;
 
-            var result = JsonConvert.DeserializeObject<BookStatus>(history.Data["Result"].ToString());
-
-            completedBookings.Add(new CompletedBooking
+            var result = JsonConvert.DeserializeObject<BookingResult>(history.Data["Result"].ToString());
+            if (result != null)
             {
-                EventId = eventId ?? 0,
-                ClimberName = climber.Name,
-                CompletedTime = job.Value.SucceededAt ?? DateTime.MinValue,
-                Result = result
-            });
+                completedBookings.Add(result);
+            }
         }
 
         return completedBookings;
     }
 
     [AutomaticRetry(Attempts = 0)]
-    public async Task<BookStatus> ProcessBookingAsync(Climber climber, long eventId)
+    public async Task<BookingResult> ProcessBookingAsync(Climber climber, long eventId)
     {
         try
         {
             var result = await _bookingService.BookClimberAsync(climber, eventId);
             _logger.LogInformation(
-                "Completed booking for {ClimberName} at event {EventId} with result {Result}",
+                "Completed booking for {ClimberName} at event {EventId} with result {Result} after {RetryCount} retries",
                 climber.Name,
                 eventId,
-                result);
+                result.Status,
+                result.RetryCount);
             return result;
         }
         catch (Exception ex)
@@ -156,7 +142,19 @@ public class BookingScheduler : IBookingScheduler
                 "Failed to process booking for {ClimberName} at event {EventId}",
                 climber.Name,
                 eventId);
-            throw;
+            return new BookingResult
+            {
+                Status = BookStatus.Error,
+                User = new UserDto
+                {
+                    Id = climber.Id,
+                    Name = climber.Name
+                },
+                EventId = eventId,
+                RetryCount = 0,
+                CompletedAt = DateTime.Now,
+                Message = ex.Message
+            };
         }
     }
 

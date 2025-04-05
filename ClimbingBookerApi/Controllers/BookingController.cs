@@ -40,7 +40,7 @@ public class BookingController : ControllerBase
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ScheduleBooking(long eventId, [FromBody] long[] climberIds)
+    public async Task<IActionResult> ScheduleBooking([FromQuery] long eventId, [FromQuery] long[] climberIds)
     {
         _logger.LogInformation("Scheduling booking for event {EventId} and climbers {ClimberIds}", 
             eventId, string.Join(", ", climberIds));

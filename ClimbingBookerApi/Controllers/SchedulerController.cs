@@ -36,13 +36,13 @@ public class SchedulerController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves all completed bookings.
+    /// Retrieves all completed bookings with detailed results.
     /// </summary>
-    /// <returns>A list of completed bookings.</returns>
-    /// <response code="200">Returns the list of completed bookings.</response>
+    /// <returns>A list of completed bookings with their results.</returns>
+    /// <response code="200">Returns the list of completed bookings with detailed results.</response>
     [HttpGet("completed")]
-    [ProducesResponseType(typeof(IEnumerable<CompletedBooking>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<CompletedBooking>>> GetCompletedBookings()
+    [ProducesResponseType(typeof(IEnumerable<BookingResult>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BookingResult>>> GetCompletedBookings()
     {
         _logger.LogInformation("Retrieving completed bookings");
         var completedBookings = await _bookingScheduler.GetCompletedBookingsAsync();

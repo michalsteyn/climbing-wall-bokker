@@ -238,38 +238,17 @@ public class ClimbingBookerClient : IClimbingBooker
         if (!await LogIn(name, user, pass))
             return BookStatus.Error;
 
-        for (int i = 0; i < 5; i++)
+        var result = await BookClimb(eventId, name);
+        UserLogger.Info(name, $"Booking Result, Status: {result}");
+        
+        // For AlreadyBooked status, verify the booking
+        if (result == BookStatus.AlreadyBooked)
         {
-            var result = await BookClimb(eventId, name);
-            UserLogger.Info(name, $"Booking Result, Status: {result}");
-            switch (result)
-            {
-                case BookStatus.OK:
-                case BookStatus.Waitlisted:
-                    var bookingCheck = await CheckBooking(eventId, name);
-                    if (bookingCheck == BookStatus.OK || bookingCheck == BookStatus.Waitlisted) 
-                        return bookingCheck;
-
-                    UserLogger.Info(name, $"Error, going to wait 1s before retrying, Retry count: {i}");
-                    await Task.Delay(1000);
-                    break;
-                case BookStatus.AlreadyBooked:
-                    bookingCheck = await CheckBooking(eventId, name);
-                    return bookingCheck;
-                case BookStatus.TooEarly:
-                    UserLogger.Info(name, $"Too Early, going to wait 1s before retrying, Retry count: {i}");
-                    await Task.Delay(1000);
-                    break;
-                case BookStatus.Error:
-                    UserLogger.Info(name, $"Error, going to wait 1s before retrying, Retry count: {i}");
-                    await Task.Delay(1000);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            var bookingCheck = await CheckBooking(eventId, name);
+            return bookingCheck;
         }
 
-        return BookStatus.Error;
+        return result;
     }
 
     

@@ -1,15 +1,16 @@
-namespace ClimbingBookerApi.Models;
+using System.Text.Json.Serialization;
+
+namespace BookingTester.Models;
 
 /// <summary>
-/// Data Transfer Object for user information.
-/// Contains only the essential user details needed for display.
+/// Data transfer object for user information.
 /// </summary>
 public class UserDto
 {
     /// <summary>
     /// The unique identifier of the user.
     /// </summary>
-    public long Id { get; set; }
+    public int Id { get; set; }
 
     /// <summary>
     /// The name of the user.
