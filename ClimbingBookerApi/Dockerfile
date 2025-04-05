@@ -12,6 +12,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["ClimbingBookerApi/ClimbingBookerApi.csproj", "ClimbingBookerApi/"]
+COPY ["BookingTester/BookingTester.csproj", "BookingTester/"]
 RUN dotnet restore "./ClimbingBookerApi/ClimbingBookerApi.csproj"
 COPY . .
 WORKDIR "/src/ClimbingBookerApi"

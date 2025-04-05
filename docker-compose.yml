@@ -1,6 +1,19 @@
 services:
   climbingbookerapi:
-    image: ${DOCKER_REGISTRY-}climbingbookerapi
+    image: ${DOCKER_REGISTRY-}climbing-booker-api
+    container_name: climbing-booker-api
     build:
       context: .
       dockerfile: ClimbingBookerApi/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    ports:
+      - "8080"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=eyJhIjoiYjYxZWYxNjVmZjBhZmYyMTVkZDY2ZDM3MTc3MWY4NWYiLCJ0IjoiYzRiYjk1NWItNjIzZi00NDA4LWE1NDQtMTBlZjc1YTVlMmM5IiwicyI6IlpERXhPVGxrTTJNdFptRTNNQzAwWmpoaExXRmhZekV0TXpOaFl6STVaREUyWVRZMSJ9

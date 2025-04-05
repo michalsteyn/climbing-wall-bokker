@@ -26,7 +26,9 @@
         "ASPNETCORE_HTTP_PORTS": "8080"
       },
       "publishAllPorts": true,
-      "useSSL": false
+      "useSSL": false,
+      "httpPort": 6600,
+      "DockerfileRunArguments": "--name climbing-booker-api"
     }
   },
   "$schema": "http://json.schemastore.org/launchsettings.json",
