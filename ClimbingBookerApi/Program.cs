@@ -62,7 +62,10 @@ namespace ClimbingBookerApi
                 .UseRecommendedSerializerSettings()
                 .UseSQLiteStorage("hangfire.db"));
 
-            builder.Services.AddHangfireServer();
+            builder.Services.AddHangfireServer(options => 
+            {
+                options.SchedulePollingInterval = TimeSpan.FromSeconds(10);
+            });
 
             // Register services
             //builder.Services.AddSingleton<IClimbingBooker, ClimbingBookerApiService>();

@@ -2,7 +2,6 @@ using BookingTester.Models;
 using Hangfire;
 using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 
 namespace BookingTester.Services;
@@ -32,6 +31,11 @@ public class BookingScheduler : IBookingScheduler
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly IMonitoringApi _monitoringApi;
 
+    // Timing constants
+    private const int EarlySchedulingSeconds = 30; // Schedule job 30 seconds early
+    private const int ImmediateExecutionThresholdSeconds = 40; // Execute immediately if less than 40 seconds away
+    private const int PollingIntervalSeconds = 10; // Hangfire polling interval
+
     public BookingScheduler(
         IBookingService bookingService,
         ILogger<BookingScheduler> logger,
@@ -40,25 +44,32 @@ public class BookingScheduler : IBookingScheduler
         _bookingService = bookingService;
         _logger = logger;
         _backgroundJobClient = backgroundJobClient;
-        //_monitoringApi = monitoringApi;
         _monitoringApi = JobStorage.Current.GetMonitoringApi();
     }
 
     public async Task ScheduleBookingAsync(ClimbingEvent climbingEvent, IEnumerable<Climber> climbers)
     {
         var eventBookableTime = climbingEvent.StartTime - TimeSpan.FromDays(1);
-        
+        var now = DateTime.UtcNow;
+        var timeUntilBooking = eventBookableTime - now;
+
+        // If the booking time is less than the immediate execution threshold, schedule for immediate execution
+        var scheduledTime = timeUntilBooking.TotalSeconds <= ImmediateExecutionThresholdSeconds
+            ? now
+            : eventBookableTime.AddSeconds(-EarlySchedulingSeconds);
+
         foreach (var climber in climbers)
         {
             var jobId = _backgroundJobClient.Schedule(
-                () => ProcessBookingAsync(climber, climbingEvent.Id),
-                eventBookableTime);
+                () => ProcessBookingAsync(climber, climbingEvent.Id, eventBookableTime),
+                scheduledTime);
 
             _logger.LogInformation(
-                "Scheduled booking for {ClimberName} at event {EventId} for {ScheduledTime}",
+                "Scheduled booking for {ClimberName} at event {EventId}. Actual booking time: {BookingTime}, Scheduled execution: {ScheduledTime}",
                 climber.Name,
                 climbingEvent.Id,
-                eventBookableTime);
+                eventBookableTime,
+                scheduledTime);
         }
     }
 
@@ -72,14 +83,8 @@ public class BookingScheduler : IBookingScheduler
             var jobDetails = _monitoringApi.JobDetails(job.Key);
             var climber = jobDetails.Job.Args[0] as Climber;
             var eventId = jobDetails.Job.Args[1] as long?;
+            var targetBookingTime = (DateTime)jobDetails.Job.Args[2];
 
-            var history = jobDetails.History.FirstOrDefault();
-            //if (history == null) continue;
-
-            //var args = JsonConvert.DeserializeObject<object[]>(history.Data["Arguments"].ToString());
-            //if (args == null || args.Length < 2) continue;
-
-            //var climber = JsonConvert.DeserializeObject<Climber>(args[0].ToString());
             if (climber == null) continue;
 
             scheduledBookings.Add(new ScheduledBooking
@@ -87,8 +92,8 @@ public class BookingScheduler : IBookingScheduler
                 JobId = job.Key,
                 EventId = eventId ?? 0,
                 ClimberName = climber.Name,
-                ScheduledTime = job.Value.EnqueueAt,
-                Status = history?.StateName ?? "Unknown"
+                ScheduledTime = targetBookingTime,
+                Status = jobDetails.History.FirstOrDefault()?.StateName ?? "Unknown"
             });
         }
 
@@ -123,10 +128,24 @@ public class BookingScheduler : IBookingScheduler
     }
 
     [AutomaticRetry(Attempts = 0)]
-    public async Task<BookingResult> ProcessBookingAsync(Climber climber, long eventId)
+    public async Task<BookingResult> ProcessBookingAsync(Climber climber, long eventId, DateTime targetBookingTime)
     {
         try
         {
+            var now = DateTime.UtcNow;
+            var timeUntilBooking = targetBookingTime - now;
+
+            if (timeUntilBooking > TimeSpan.Zero)
+            {
+                _logger.LogInformation(
+                    "Waiting {WaitTime}ms before executing booking for {ClimberName} at event {EventId}",
+                    timeUntilBooking.TotalMilliseconds,
+                    climber.Name,
+                    eventId);
+                
+                await Task.Delay(timeUntilBooking);
+            }
+
             var result = await _bookingService.BookClimberAsync(climber, eventId);
             _logger.LogInformation(
                 "Completed booking for {ClimberName} at event {EventId} with result {Result} after {RetryCount} retries",
