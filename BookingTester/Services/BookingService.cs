@@ -49,6 +49,7 @@ public class BookingService : IBookingService
                 {
                     case BookStatus.OK:
                     case BookStatus.Waitlisted:
+                        await Task.Delay(500);
                         var bookingCheck = await _climbingBooker.CheckBooking(eventId, climber.Name);
                         if (bookingCheck == BookStatus.OK || bookingCheck == BookStatus.Waitlisted)
                         {
@@ -59,6 +60,7 @@ public class BookingService : IBookingService
                         break;
 
                     case BookStatus.AlreadyBooked:
+                        await Task.Delay(500);
                         var checkResult = await _climbingBooker.CheckBooking(eventId, climber.Name);
                         result.Status = checkResult;
                         result.CompletedAt = DateTime.Now;

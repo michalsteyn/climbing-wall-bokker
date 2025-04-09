@@ -55,6 +55,18 @@ namespace ClimbingBookerApi
                 });
             });
 
+            // Configure CORS
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("https://8a452b6a-6b31-4857-96b1-db23ad2f812e.lovableproject.com", "https://id-preview--8a452b6a-6b31-4857-96b1-db23ad2f812e.lovable.app")
+                          .AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials();
+                });
+            });
+
             // Configure Hangfire
             builder.Services.AddHangfire(configuration => configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
@@ -68,8 +80,8 @@ namespace ClimbingBookerApi
             });
 
             // Register services
-            //builder.Services.AddSingleton<IClimbingBooker, ClimbingBookerApiService>();
-            builder.Services.AddSingleton<IClimbingBooker, MockClimbingBooker>();
+            builder.Services.AddSingleton<IClimbingBooker, ClimbingBookerClient>();
+            //builder.Services.AddSingleton<IClimbingBooker, MockClimbingBooker>();
 
             builder.Services.AddSingleton<IBookingService, BookingService>();
             builder.Services.AddSingleton<IBookingScheduler, BookingScheduler>();
@@ -97,6 +109,9 @@ namespace ClimbingBookerApi
             }
 
             //app.UseHttpsRedirection();
+
+            // Enable CORS
+            app.UseCors("AllowFrontend");
 
             // Add API key middleware before authorization
             app.UseApiKeyMiddleware();

@@ -173,7 +173,9 @@ public class ClimbingBookerClient : IClimbingBooker
             return BookStatus.AlreadyBooked;
 
         //Console.WriteLine(responseString);
-        return response.StatusCode == HttpStatusCode.NotFound ? BookStatus.OK : BookStatus.Error;
+        return response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.OK
+            ? BookStatus.OK
+            : BookStatus.Error;
     }
 
     public async Task<BookStatus> CheckBooking(long eventId, string name)
@@ -229,7 +231,7 @@ public class ClimbingBookerClient : IClimbingBooker
                 }
             }
         }
-        UserLogger.Info(name, $"Didn't find Booking for even: {eventId}");
+        UserLogger.Info(name, $"Didn't find Booking for event: {eventId}");
         return BookStatus.Error;
     }
 
